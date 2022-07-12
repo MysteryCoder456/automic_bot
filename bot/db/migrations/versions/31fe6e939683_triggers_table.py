@@ -1,7 +1,7 @@
 """triggers table
 
 Revision ID: 31fe6e939683
-Revises: 
+Revises:
 Create Date: 2022-07-12 21:26:21.646193
 
 """

@@ -3,4 +3,7 @@ import enum
 
 class TriggerType(enum.Enum):
     Message = "message"
-    Reaction = "reaction"
+    ReactionAdd = "reaction_add"
+    ReactionRemove = "reaction_remove"
+    MemberJoin = "member_join"
+    MemberLeave = "member_leave"
