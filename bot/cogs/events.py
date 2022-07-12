@@ -1,13 +1,8 @@
-import enum
 import discord
 from discord.ext import commands
 
 from bot import TESTING_GUILDS
-
-
-class TriggerType(enum.Enum):
-    Message = "message"
-    Reaction = "reaction"
+from bot.enums import TriggerType
 
 
 class Triggers(commands.Cog):
