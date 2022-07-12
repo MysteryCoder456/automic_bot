@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+import pathlib
 import discord
 from discord.ext import commands
 
@@ -26,11 +27,25 @@ async def ping(ctx: discord.ApplicationContext):
     await ctx.respond(f"Pong! That took {latency} ms!")
 
 
+def add_cogs():
+    cogs_dir = pathlib.Path(__file__).parent / "cogs"
+    cogs_list = [
+        f"bot.cogs.{file[:-3]}"
+        for file in os.listdir(cogs_dir)
+        if file.endswith(".py")
+    ]
+    loaded_cogs = bot.load_extensions(*cogs_list, store=False)
+
+    if isinstance(loaded_cogs, list):
+        print(f"Loaded {len(loaded_cogs)} cogs:", *loaded_cogs, sep="\n")
+
+
 def main(token: str):
     loop = asyncio.get_event_loop()
 
     try:
         db.init_engine()
+        add_cogs()
         loop.run_until_complete(bot.start(token))
     except KeyboardInterrupt or SystemExit:
         print("Shutting down...")
