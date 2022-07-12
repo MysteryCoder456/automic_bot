@@ -1,4 +1,7 @@
 py-cord
+sqlalchemy
+asyncpg
+alembic
 python-dotenv
 black
 flake8

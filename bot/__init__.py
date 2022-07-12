@@ -1,7 +1,10 @@
 import os
 import json
+import asyncio
 import discord
 from discord.ext import commands
+
+from bot import db
 
 if testing_guilds_txt := os.getenv("TESTING_GUILDS"):
     TESTING_GUILDS: list[int] | None = json.loads(testing_guilds_txt)
@@ -24,7 +27,12 @@ async def ping(ctx: discord.ApplicationContext):
 
 
 def main(token: str):
+    loop = asyncio.get_event_loop()
+
     try:
-        bot.run(token)
+        db.init_engine()
+        loop.run_until_complete(bot.start(token))
     except KeyboardInterrupt or SystemExit:
         print("Shutting down...")
+        loop.run_until_complete(bot.close())
+        loop.run_until_complete(db.deinit_engine())
