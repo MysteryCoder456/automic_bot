@@ -1,8 +1,8 @@
 """triggers table
 
-Revision ID: 31fe6e939683
+Revision ID: 36b472f93b45
 Revises:
-Create Date: 2022-07-12 21:26:21.646193
+Create Date: 2022-07-13 08:09:50.515179
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "31fe6e939683"
+revision = "36b472f93b45"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,7 +24,14 @@ def upgrade() -> None:
         sa.Column("guild_id", sa.BigInteger(), nullable=False),
         sa.Column(
             "type",
-            sa.Enum("Message", "Reaction", name="triggertype"),
+            sa.Enum(
+                "Message",
+                "ReactionAdd",
+                "ReactionRemove",
+                "MemberJoin",
+                "MemberLeave",
+                name="triggertype",
+            ),
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),

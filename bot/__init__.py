@@ -24,7 +24,7 @@ async def on_ready():
 @bot.slash_command(guild_ids=TESTING_GUILDS)
 async def ping(ctx: discord.ApplicationContext):
     latency = round(bot.latency * 1000)
-    await ctx.respond(f"Pong! That took {latency} ms!")
+    await ctx.respond(f"Pong! That took `{latency} ms`!")
 
 
 def add_cogs():

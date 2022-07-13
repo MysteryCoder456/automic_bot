@@ -1,27 +1,32 @@
 import os
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncEngine,
     AsyncSession,
 )
 
-ENGINE: AsyncEngine
+_engine: AsyncEngine
+_async_session_maker: sessionmaker
 
 
 def init_engine():
-    global ENGINE
+    global _engine, _async_session_maker
 
     if db_uri := os.getenv("DB_URI"):
-        ENGINE = create_async_engine(db_uri)
+        _engine = create_async_engine(db_uri)
+        _async_session_maker = sessionmaker(
+            _engine, class_=AsyncSession, expire_on_commit=False
+        )
     else:
         raise Exception("Expected DB_URI variable in environment, not found!")
 
 
 async def deinit_engine():
-    global ENGINE
-    await ENGINE.dispose()
+    global _engine
+    await _engine.dispose()
 
 
 def async_session() -> AsyncSession:
-    global ENGINE
-    return AsyncSession(ENGINE)
+    global _async_session_maker
+    return _async_session_maker()
