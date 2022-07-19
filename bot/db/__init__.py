@@ -29,4 +29,4 @@ async def deinit_engine():
 
 def async_session() -> AsyncSession:
     global _async_session_maker
-    return _async_session_maker()
+    return _async_session_maker()  # type: ignore

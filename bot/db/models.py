@@ -1,5 +1,6 @@
-from sqlalchemy import Column, BigInteger, Enum
+from sqlalchemy import Column, BigInteger, Enum, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_mixin, declared_attr, relationship
 
 from bot.enums import TriggerType
 
@@ -14,15 +15,25 @@ class Trigger(Base):
     type = Column(Enum(TriggerType), nullable=False)
 
 
+@declarative_mixin
 class BaseAction:
     id = Column(BigInteger, primary_key=True, auto_increment=True)
     guild_id = Column(BigInteger, nullable=False)
+
+    @declared_attr
+    def trigger_id(self):
+        return Column(ForeignKey("triggers.id"), nullable=False)
+
+    @declared_attr
+    def trigger(self):
+        return relationship("Trigger")
 
 
 class MessageSendAction(Base, BaseAction):
     __tablename__ = "message_send_actions"
 
     channel_id = Column(BigInteger, nullable=False)
+    message_content = Column(String, nullable=False)
 
 
 class MessageDeleteAction(Base, BaseAction):
