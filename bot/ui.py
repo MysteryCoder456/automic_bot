@@ -1,5 +1,4 @@
 import discord
-from sqlalchemy.future import select
 
 from bot.db import async_session, models
 
@@ -54,24 +53,9 @@ class MessageSendActionModal(discord.ui.Modal):
             return
 
         async with async_session() as session:
-            # Check whether the given trigger ID is valid
-            query = (
-                select(models.Trigger)
-                .where(models.Trigger.id == trigger_id)
-                .where(models.Trigger.guild_id == interaction.guild_id)
-            )
-            result = await session.execute(query)
-            trigger: models.Trigger | None = result.scalar()
-
-            if not trigger:
-                await interaction.response.send_message(
-                    f"Unable to find a trigger with ID `{trigger_id}` in this server!"
-                )
-                return
-
             new_action = models.MessageSendAction(
                 guild_id=interaction.guild_id,
-                trigger=trigger,
+                trigger_id=trigger_id,
                 channel_id=channel_id,
                 message_content=message_content,
             )
@@ -85,6 +69,6 @@ class MessageSendActionModal(discord.ui.Modal):
         )
         embed.add_field(name="Action ID", value=str(new_action.id))
         embed.add_field(name="Action Type", value="MessageSend")
-        embed.add_field(name="Trigger ID", value=str(new_action.trigger_id))
+        embed.add_field(name="Trigger ID", value=str(trigger_id))
 
         await interaction.response.send_message(embed=embed)

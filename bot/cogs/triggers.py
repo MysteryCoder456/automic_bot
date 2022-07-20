@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from sqlalchemy.future import select
 
 from bot import TESTING_GUILDS
 from bot.db import async_session, models
@@ -14,18 +15,28 @@ class Triggers(commands.Cog):
         description="Add or modify action triggers",
         guild_ids=TESTING_GUILDS,
     )
+    trigger_add_group = trigger_group.create_subgroup(
+        name="add", description="Add action triggers", guild_ids=TESTING_GUILDS
+    )
     theme = discord.Color.dark_blue()
 
-    @trigger_group.command(name="add")
-    @commands.has_guild_permissions(administrator=True)
-    async def add_trigger(
-        self, ctx: discord.ApplicationContext, trigger_type: TriggerType
+    @trigger_add_group.command(name="message")
+    async def add_message_trigger(
+        self,
+        ctx: discord.ApplicationContext,
+        match_statement: str,
+        channel: discord.TextChannel,
     ):
-        """Add a new trigger"""
+        """Add a trigger that executes when a new message matches the match statement. Regex can also be used."""
 
         async with async_session() as session:
             new_trigger = models.Trigger(
-                guild_id=ctx.guild_id, type=trigger_type
+                guild_id=ctx.guild_id,
+                type=TriggerType.Message,
+                activation_params={
+                    "match_statement": match_statement,
+                    "channel_id": channel.id,
+                },
             )
             session.add(new_trigger)
             await session.commit()
@@ -36,24 +47,28 @@ class Triggers(commands.Cog):
             color=self.theme,
         )
         embed.add_field(name="Trigger ID", value=str(new_trigger.id))
-        embed.add_field(name="Trigger Type", value=trigger_type.name)
+        embed.add_field(name="Trigger Type", value=TriggerType.Message.name)
 
         await ctx.respond(embed=embed)
 
     @trigger_group.command(name="remove")
-    @commands.has_guild_permissions(administrator=True)
-    async def remove_trigger(
+    async def remove_message_trigger(
         self, ctx: discord.ApplicationContext, trigger_id: int
     ):
-        """Remove an existing trigger"""
+        """Permanently remove a trigger"""
 
         async with async_session() as session:
-            trigger = await session.get(models.Trigger, trigger_id)
+            query = (
+                select(models.Trigger)
+                .where(models.Trigger.id == trigger_id)
+                .where(models.Trigger.guild_id == ctx.guild_id)
+            )
+            result = await session.execute(query)
 
-            if trigger and trigger.guild_id == ctx.guild_id:
+            if trigger := result.scalar():
                 embed = discord.Embed(
-                    title="Deleted Trigger",
-                    description="An existing trigger has been removed!",
+                    title="Removed Trigger",
+                    description="An existing trigger has been permanently removed!",
                     color=self.theme,
                 )
                 embed.add_field(name="Trigger ID", value=str(trigger.id))
@@ -66,7 +81,7 @@ class Triggers(commands.Cog):
 
             else:
                 await ctx.respond(
-                    f"Unable to find a trigger with ID `{trigger_id}` in this server"
+                    f"Couldn't find any triggers with ID `{trigger_id}` in this server!"
                 )
 
 

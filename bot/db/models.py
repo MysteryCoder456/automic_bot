@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Enum, ForeignKey, String
+from sqlalchemy import JSON, Column, BigInteger, Enum, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import declarative_mixin, declared_attr, relationship
 
@@ -13,6 +13,7 @@ class Trigger(Base):
     id = Column(BigInteger, primary_key=True, auto_increment=True)
     guild_id = Column(BigInteger, nullable=False)
     type = Column(Enum(TriggerType), nullable=False)
+    activation_params = Column(JSON, nullable=False)
 
 
 @declarative_mixin
