@@ -55,7 +55,7 @@ class Triggers(commands.Cog):
     async def remove_message_trigger(
         self, ctx: discord.ApplicationContext, trigger_id: int
     ):
-        """Permanently remove a trigger"""
+        """Permanently remove a trigger and all associated actions"""
 
         async with async_session() as session:
             query = (
@@ -68,7 +68,7 @@ class Triggers(commands.Cog):
             if trigger := result.scalar():
                 embed = discord.Embed(
                     title="Removed Trigger",
-                    description="An existing trigger has been permanently removed!",
+                    description="An existing trigger has been permanently removed, along with all actions associated with it!",
                     color=self.theme,
                 )
                 embed.add_field(name="Trigger ID", value=str(trigger.id))

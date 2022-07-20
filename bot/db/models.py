@@ -23,7 +23,9 @@ class BaseAction:
 
     @declared_attr
     def trigger_id(self):
-        return Column(ForeignKey("triggers.id"), nullable=False)
+        return Column(
+            ForeignKey("triggers.id", ondelete="CASCADE"), nullable=False
+        )
 
     @declared_attr
     def trigger(self):
