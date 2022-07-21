@@ -52,7 +52,7 @@ class Triggers(commands.Cog):
         await ctx.respond(embed=embed)
 
     @trigger_group.command(name="remove")
-    async def remove_message_trigger(
+    async def remove_trigger(
         self, ctx: discord.ApplicationContext, trigger_id: int
     ):
         """Permanently remove a trigger and all associated actions"""
