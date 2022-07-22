@@ -10,7 +10,13 @@ class TriggerType(enum.Enum):
 
 
 class ActionType(enum.Enum):
-    MessageSend = "message_send"
-    MessageDelete = "message_delete"
-    ReactionAdd = "reaction_add"
-    ReactionRemove = "reaction_remove"
+    # Value of each variant signifies dynamic parameters
+    MessageSend = {
+        "member": None,
+        "member_mention": None,
+        "channel": None,
+        "matched_string": None,
+    }
+    MessageDelete = {}
+    ReactionAdd = {}
+    ReactionRemove = {}

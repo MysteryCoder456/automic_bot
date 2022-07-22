@@ -14,6 +14,7 @@ class Trigger(Base):
     guild_id = Column(BigInteger, nullable=False)
     type = Column(Enum(TriggerType), nullable=False)
     activation_params = Column(JSON, nullable=False)
+    actions = relationship("Action", back_populates="trigger")
 
 
 class Action(Base):
@@ -27,4 +28,4 @@ class Action(Base):
     trigger_id = Column(
         ForeignKey("triggers.id", ondelete="CASCADE"), nullable=False
     )
-    trigger = relationship("Trigger")
+    trigger = relationship("Trigger", back_populates="actions")

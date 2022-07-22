@@ -31,6 +31,14 @@ class Actions(commands.Cog):
     ):
         """Add a new MessageSend action"""
 
+        try:
+            message_content.format(**ActionType.MessageSend.value)
+        except KeyError as e:
+            await ctx.respond(
+                f"`{e.args[0]}` is an invalid parameter, please remove it!"
+            )
+            return
+
         async with async_session() as session:
             query = (
                 select(models.Trigger)
@@ -58,6 +66,12 @@ class Actions(commands.Cog):
             session.add(new_action)
             await session.commit()
 
+        shortened_msg_content = (
+            message_content
+            if len(message_content) <= 100
+            else f"{message_content[:100]}..."
+        )
+
         embed = discord.Embed(
             title="New Action",
             description="A new action has been created!",
@@ -66,7 +80,7 @@ class Actions(commands.Cog):
         embed.add_field(name="Action ID", value=str(new_action.id))
         embed.add_field(name="Trigger ID", value=str(trigger_id))
         embed.add_field(name="Action Type", value=new_action.type.name)
-        embed.add_field(name="Message Content", value=message_content[:100])
+        embed.add_field(name="Message Content", value=shortened_msg_content)
         embed.add_field(name="Channel", value=channel.mention)
 
         await ctx.respond(embed=embed)
