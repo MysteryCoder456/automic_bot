@@ -1,8 +1,10 @@
+import asyncio
 import discord
 from discord.ext import commands
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
-from bot import TESTING_GUILDS
+from bot import TESTING_GUILDS, trigger_id_autocomplete
 from bot.db import async_session, models
 from bot.enums import TriggerType
 
@@ -20,7 +22,19 @@ class Triggers(commands.Cog):
     )
     theme = discord.Color.dark_blue()
 
+    def base_response_embed(self, trigger: models.Trigger) -> discord.Embed:
+        return (
+            discord.Embed(
+                title="New Trigger",
+                description="A new trigger has been created!",
+                color=self.theme,
+            )
+            .add_field(name="Trigger ID", value=str(trigger.id))
+            .add_field(name="Trigger Type", value=trigger.type.name)
+        )
+
     @trigger_add_group.command(name="message")
+    @commands.has_guild_permissions(administrator=True)
     async def add_message_trigger(
         self,
         ctx: discord.ApplicationContext,
@@ -41,17 +55,82 @@ class Triggers(commands.Cog):
             session.add(new_trigger)
             await session.commit()
 
-        embed = discord.Embed(
-            title="New Trigger",
-            description="A new trigger has been created!",
-            color=self.theme,
+        embed = self.base_response_embed(new_trigger)
+        embed.add_field(name="Match Statement", value=match_statement)
+        embed.add_field(name="Channel", value=channel.mention)
+
+        await ctx.respond(embed=embed)
+
+    @trigger_add_group.command(name="reactionadd")
+    @commands.has_guild_permissions(administrator=True)
+    async def add_reaction_add_trigger(
+        self,
+        ctx: discord.ApplicationContext,
+        channel: discord.TextChannel,
+        message_id: str,
+        emoji: discord.PartialEmoji | None,
+    ):
+        """Add a trigger that executes when someone reacts to a message. Looks for all emojis by default."""
+
+        if not message_id.isnumeric():
+            await ctx.respond(
+                "Please enter a valid message ID!", ephemeral=True
+            )
+            return
+
+        msg_id = int(message_id)
+
+        try:
+            # Make sure that the provided message is accessible
+            msg = await channel.fetch_message(msg_id)
+        except discord.NotFound:
+            await ctx.respond(
+                f"Unable to find a message with ID `{msg_id}` in {channel.mention}!"
+            )
+            return
+        except discord.Forbidden:
+            await ctx.respond(
+                f"I don't have permission to access that message in {channel.mention}!"
+            )
+            return
+        except discord.HTTPException:
+            await ctx.respond(
+                "Something went wrong while accessing that message, please try again!"
+            )
+            return
+
+        if emoji:
+            em = emoji.id if emoji.is_custom_emoji() else emoji.name
+        else:
+            em = None
+
+        async with async_session() as session:
+            new_trigger = models.Trigger(
+                guild_id=ctx.guild_id,
+                type=TriggerType.ReactionAdd,
+                activation_params={
+                    "channel_id": channel.id,
+                    "message_id": msg_id,
+                    "emoji": em,
+                },
+            )
+            session.add(new_trigger)
+            await session.commit()
+
+        embed = self.base_response_embed(new_trigger)
+        embed.add_field(name="Channel", value=channel.mention)
+        embed.add_field(
+            name="Message", value=f"[Jump To Message]({msg.jump_url})"
         )
-        embed.add_field(name="Trigger ID", value=str(new_trigger.id))
-        embed.add_field(name="Trigger Type", value=TriggerType.Message.name)
+        embed.add_field(
+            name="Emoji", value="All emojis" if emoji is None else str(emoji)
+        )
 
         await ctx.respond(embed=embed)
 
     @trigger_group.command(name="remove")
+    @commands.has_guild_permissions(administrator=True)
+    @discord.option("trigger_id", autocomplete=trigger_id_autocomplete)
     async def remove_trigger(
         self, ctx: discord.ApplicationContext, trigger_id: int
     ):
@@ -62,10 +141,11 @@ class Triggers(commands.Cog):
                 select(models.Trigger)
                 .where(models.Trigger.id == trigger_id)
                 .where(models.Trigger.guild_id == ctx.guild_id)
+                .options(selectinload(models.Trigger.actions))
             )
-            result = await session.execute(query)
+            trigger: models.Trigger | None = await session.scalar(query)
 
-            if trigger := result.scalar():
+            if trigger:
                 embed = discord.Embed(
                     title="Removed Trigger",
                     description="An existing trigger has been permanently removed, along with all actions associated with it!",
@@ -74,6 +154,8 @@ class Triggers(commands.Cog):
                 embed.add_field(name="Trigger ID", value=str(trigger.id))
                 embed.add_field(name="Trigger Type", value=trigger.type.name)
 
+                action_delete_tasks = [session.delete(action) for action in trigger.actions]
+                await asyncio.gather(*action_delete_tasks)
                 await session.delete(trigger)
                 await session.commit()
 
@@ -81,7 +163,8 @@ class Triggers(commands.Cog):
 
             else:
                 await ctx.respond(
-                    f"Couldn't find any triggers with ID `{trigger_id}` in this server!"
+                    f"Couldn't find any triggers with ID `{trigger_id}` in this server!",
+                    ephemeral=True,
                 )
 
 

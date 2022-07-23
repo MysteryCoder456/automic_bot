@@ -1,10 +1,11 @@
-import asyncio
 import re
+import asyncio
+from typing import Iterable
+
 import discord
 from discord.abc import GuildChannel, PrivateChannel
 from discord.ext import commands
 from sqlalchemy.future import select
-from sqlalchemy.engine.result import ChunkedIteratorResult
 from sqlalchemy.orm import selectinload
 
 from bot.db import async_session, models
@@ -56,12 +57,9 @@ class ActionExecutor(commands.Cog):
                 .where(models.Trigger.type == TriggerType.Message)
                 .options(selectinload(models.Trigger.actions))
             )
-            result: ChunkedIteratorResult = await session.execute(query)
+            triggers: Iterable[models.Trigger] = await session.scalars(query)
 
-            for trigger in result.scalars():
-                # For type hinting only, has no functional purpose
-                trigger: models.Trigger = trigger
-
+            for trigger in triggers:
                 params: dict = trigger.activation_params  # type: ignore
                 match_statement: str = params["match_statement"]
                 channel_id: int = params["channel_id"]

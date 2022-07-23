@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from sqlalchemy.future import select
 
-from bot import TESTING_GUILDS
+from bot import TESTING_GUILDS, trigger_id_autocomplete
 from bot.db import async_session, models
 from bot.enums import ActionType
 
@@ -22,6 +22,7 @@ class Actions(commands.Cog):
 
     @action_add_group.command(name="messagesend")
     @commands.has_guild_permissions(administrator=True)
+    @discord.option("trigger_id", autocomplete=trigger_id_autocomplete)
     async def add_message_send_action(
         self,
         ctx: discord.ApplicationContext,
@@ -35,7 +36,8 @@ class Actions(commands.Cog):
             message_content.format(**ActionType.MessageSend.value)
         except KeyError as e:
             await ctx.respond(
-                f"`{e.args[0]}` is an invalid parameter, please remove it!"
+                f"`{e.args[0]}` is an invalid parameter, please remove it!",
+                ephemeral=True,
             )
             return
 
@@ -45,12 +47,12 @@ class Actions(commands.Cog):
                 .where(models.Trigger.id == trigger_id)
                 .where(models.Trigger.guild_id == ctx.guild_id)
             )
-            result = await session.execute(query)
-            trigger: models.Trigger | None = result.scalar()
+            trigger: models.Trigger | None = await session.scalar(query)
 
             if not trigger:
                 await ctx.respond(
-                    f"Couldn't find any triggers with ID `{trigger_id}` in this server!"
+                    f"Couldn't find any triggers with ID `{trigger_id}` in this server!",
+                    ephemeral=True,
                 )
                 return
 
@@ -97,30 +99,28 @@ class Actions(commands.Cog):
                 .where(models.Action.id == action_id)
                 .where(models.Action.guild_id == ctx.guild_id)
             )
-            result = await session.execute(query)
+            action: models.Action | None = await session.scalar(query)
 
-            if action := result.scalar():
-                embed = discord.Embed(
-                    title="Removed Action",
-                    description="An existing action has been permanently removed!",
-                    color=self.theme,
-                )
-                embed.add_field(name="Action ID", value=str(action.id))
-                embed.add_field(
-                    name="Trigger ID", value=str(action.trigger_id)
-                )
-                embed.add_field(name="Action Type", value=action.type.name)
-
-                await session.delete(action)
-                await session.commit()
-
-                await ctx.respond(embed=embed)
-
-            else:
+            if not action:
                 await ctx.respond(
-                    f"Couldn't find any actions with ID `{action_id}` in this server!"
+                    f"Couldn't find any actions with ID `{action_id}` in this server!",
+                    ephemeral=True,
                 )
                 return
+
+            embed = discord.Embed(
+                title="Removed Action",
+                description="An existing action has been permanently removed!",
+                color=self.theme,
+            )
+            embed.add_field(name="Action ID", value=str(action.id))
+            embed.add_field(name="Trigger ID", value=str(action.trigger_id))
+            embed.add_field(name="Action Type", value=action.type.name)
+
+            await session.delete(action)
+            await session.commit()
+
+            await ctx.respond(embed=embed)
 
 
 def setup(bot: commands.Bot):

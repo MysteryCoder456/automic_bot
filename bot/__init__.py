@@ -4,8 +4,10 @@ import asyncio
 import pathlib
 import discord
 from discord.ext import commands
+from sqlalchemy.future import select
 
 from bot import db
+from bot.db import models
 
 if testing_guilds_txt := os.getenv("TESTING_GUILDS"):
     TESTING_GUILDS: list[int] | None = json.loads(testing_guilds_txt)
@@ -25,6 +27,19 @@ async def on_ready():
 async def ping(ctx: discord.ApplicationContext):
     latency = round(bot.latency * 1000)
     await ctx.respond(f"Pong! That took `{latency} ms`!")
+
+
+async def trigger_id_autocomplete(
+    ctx: discord.AutocompleteContext,
+) -> list[int]:
+    """Returns a list of trigger IDs in the current server."""
+
+    async with db.async_session() as session:
+        query = select(models.Trigger).where(
+            models.Trigger.guild_id == ctx.interaction.guild_id
+        )
+        triggers = await session.scalars(query)
+        return [t.id for t in triggers if str(t.id) in ctx.value or len(ctx.value) == 0]
 
 
 def add_cogs():
