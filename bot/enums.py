@@ -2,21 +2,22 @@ import enum
 
 
 class TriggerType(enum.Enum):
-    Message = "message"
-    ReactionAdd = "reaction_add"
-    ReactionRemove = "reaction_remove"
-    MemberJoin = "member_join"
-    MemberLeave = "member_leave"
-
-
-class ActionType(enum.Enum):
     # Value of each variant signifies dynamic parameters
-    MessageSend = {
+    Message = {
         "member": None,
         "member_mention": None,
         "channel": None,
         "matched_string": None,
+        "message_content": None,
     }
-    MessageDelete = {}
     ReactionAdd = {}
     ReactionRemove = {}
+    MemberJoin = {}
+    MemberLeave = {}
+
+
+class ActionType(enum.Enum):
+    MessageSend = "message_send"
+    MessageDelete = "message_delete"
+    ReactionAdd = "reaction_add"
+    ReactionRemove = "reaction_remove"

@@ -70,13 +70,14 @@ class ActionExecutor(commands.Cog):
                     action_tasks = []
 
                     for action in trigger.actions:
-                        dynamic_params = action.type.value.copy()
+                        dynamic_params = trigger.type.value.copy()
                         dynamic_params["member"] = message.author
                         dynamic_params[
                             "member_mention"
                         ] = message.author.mention
                         dynamic_params["channel"] = message.channel.mention  # type: ignore
                         dynamic_params["matched_string"] = re_result.string
+                        dynamic_params["messsage_content"] = message.content
 
                         task = self.execute_action(action, **dynamic_params)
                         action_tasks.append(task)

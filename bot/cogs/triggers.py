@@ -154,7 +154,9 @@ class Triggers(commands.Cog):
                 embed.add_field(name="Trigger ID", value=str(trigger.id))
                 embed.add_field(name="Trigger Type", value=trigger.type.name)
 
-                action_delete_tasks = [session.delete(action) for action in trigger.actions]
+                action_delete_tasks = [
+                    session.delete(action) for action in trigger.actions
+                ]
                 await asyncio.gather(*action_delete_tasks)
                 await session.delete(trigger)
                 await session.commit()

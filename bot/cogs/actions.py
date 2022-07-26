@@ -32,15 +32,6 @@ class Actions(commands.Cog):
     ):
         """Add a new MessageSend action"""
 
-        try:
-            message_content.format(**ActionType.MessageSend.value)
-        except KeyError as e:
-            await ctx.respond(
-                f"`{e.args[0]}` is an invalid parameter, please remove it!",
-                ephemeral=True,
-            )
-            return
-
         async with async_session() as session:
             query = (
                 select(models.Trigger)
@@ -52,6 +43,16 @@ class Actions(commands.Cog):
             if not trigger:
                 await ctx.respond(
                     f"Couldn't find any triggers with ID `{trigger_id}` in this server!",
+                    ephemeral=True,
+                )
+                return
+
+            # Validate dynamic parameters are valid for the chosen trigger type
+            try:
+                message_content.format(**trigger.type.value)
+            except KeyError as e:
+                await ctx.respond(
+                    f"`{e.args[0]}` is an invalid parameter for `{trigger.type.name}` triggers, please remove it!",
                     ephemeral=True,
                 )
                 return

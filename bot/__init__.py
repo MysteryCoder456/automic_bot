@@ -39,7 +39,11 @@ async def trigger_id_autocomplete(
             models.Trigger.guild_id == ctx.interaction.guild_id
         )
         triggers = await session.scalars(query)
-        return [t.id for t in triggers if str(t.id) in ctx.value or len(ctx.value) == 0]
+        return [
+            t.id
+            for t in triggers
+            if str(t.id) in ctx.value or len(ctx.value) == 0
+        ]
 
 
 def add_cogs():
