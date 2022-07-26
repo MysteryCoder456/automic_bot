@@ -67,21 +67,70 @@ class ActionExecutor(commands.Cog):
                 re_result = re.fullmatch(match_statement, message.content)
 
                 if re_result is not None and message.channel.id == channel_id:
-                    action_tasks = []
+                    dynamic_params = trigger.type.value.copy()
+                    dynamic_params["member"] = message.author
+                    dynamic_params["member_mention"] = message.author.mention
+                    dynamic_params["channel"] = message.channel.mention  # type: ignore
+                    dynamic_params["matched_string"] = re_result.string
+                    dynamic_params["messsage_content"] = message.content
 
-                    for action in trigger.actions:
-                        dynamic_params = trigger.type.value.copy()
-                        dynamic_params["member"] = message.author
-                        dynamic_params[
-                            "member_mention"
-                        ] = message.author.mention
-                        dynamic_params["channel"] = message.channel.mention  # type: ignore
-                        dynamic_params["matched_string"] = re_result.string
-                        dynamic_params["messsage_content"] = message.content
+                    action_tasks = [
+                        self.execute_action(action, **dynamic_params)
+                        for action in trigger.actions
+                    ]
+                    await asyncio.gather(*action_tasks)
 
-                        task = self.execute_action(action, **dynamic_params)
-                        action_tasks.append(task)
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(
+        self, payload: discord.RawReactionActionEvent
+    ):
+        """Listens for ReactionAdd trigger events"""
 
+        channel = await self.get_or_fetch_channel(payload.channel_id)
+
+        if not (
+            payload.guild_id
+            and payload.member
+            and isinstance(channel, discord.TextChannel)
+        ):
+            return
+
+        async with async_session() as session:
+            query = (
+                select(models.Trigger)
+                .where(models.Trigger.guild_id == payload.guild_id)
+                .where(models.Trigger.type == TriggerType.ReactionAdd)
+                .options(selectinload(models.Trigger.actions))
+            )
+            triggers: Iterable[models.Trigger] = await session.scalars(query)
+
+            for trigger in triggers:
+                params: dict = trigger.activation_params  # type: ignore
+                channel_id: int = params["channel_id"]
+                message_id: int = params["message_id"]
+                emoji: str | int | None = params["emoji"]
+
+                payload_emoji = (
+                    payload.emoji.id
+                    if payload.emoji.is_custom_emoji()
+                    else payload.emoji.name
+                )
+
+                if (
+                    payload.channel_id == channel_id
+                    and payload.message_id == message_id
+                    and (emoji is None or emoji == payload_emoji)
+                ):
+                    dynamic_params = trigger.type.value.copy()
+                    dynamic_params["member"] = payload.member
+                    dynamic_params["member_mention"] = payload.member.mention
+                    dynamic_params["channel"] = channel.mention
+                    dynamic_params["emoji"] = payload.emoji
+
+                    action_tasks = [
+                        self.execute_action(action, **dynamic_params)
+                        for action in trigger.actions
+                    ]
                     await asyncio.gather(*action_tasks)
 
 

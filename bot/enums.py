@@ -10,7 +10,12 @@ class TriggerType(enum.Enum):
         "matched_string": None,
         "message_content": None,
     }
-    ReactionAdd = {}
+    ReactionAdd = {
+        "member": None,
+        "member_mention": None,
+        "channel": None,
+        "emoji": None,
+    }
     ReactionRemove = {}
     MemberJoin = {}
     MemberLeave = {}
