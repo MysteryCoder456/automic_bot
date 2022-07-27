@@ -16,7 +16,12 @@ class TriggerType(enum.Enum):
         "channel": None,
         "emoji": None,
     }
-    ReactionRemove = {}
+    ReactionRemove = {
+        "member": None,
+        "member_mention": None,
+        "channel": None,
+        "emoji": None,
+    }
     MemberJoin = {}
     MemberLeave = {}
 

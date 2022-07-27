@@ -129,6 +129,73 @@ class Triggers(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+    @trigger_add_group.command(name="reactionremove")
+    @commands.has_guild_permissions(administrator=True)
+    async def add_reaction_remove_trigger(
+        self,
+        ctx: discord.ApplicationContext,
+        channel: discord.TextChannel,
+        message_id: str,
+        emoji: discord.PartialEmoji | None,
+    ):
+        """Add a trigger that executes when someone unreacts from a message. Looks for all emojis by default."""
+
+        if not message_id.isnumeric():
+            await ctx.respond(
+                "Please enter a valid message ID!", ephemeral=True
+            )
+            return
+
+        msg_id = int(message_id)
+
+        try:
+            # Make sure that the provided message is accessible
+            msg = await channel.fetch_message(msg_id)
+        except discord.NotFound:
+            await ctx.respond(
+                f"Unable to find a message with ID `{msg_id}` in {channel.mention}!"
+            )
+            return
+        except discord.Forbidden:
+            await ctx.respond(
+                f"I don't have permission to access that message in {channel.mention}!"
+            )
+            return
+        except discord.HTTPException:
+            await ctx.respond(
+                "Something went wrong while accessing that message, please try again!"
+            )
+            return
+
+        if emoji:
+            em = emoji.id if emoji.is_custom_emoji() else emoji.name
+        else:
+            em = None
+
+        async with async_session() as session:
+            new_trigger = models.Trigger(
+                guild_id=ctx.guild_id,
+                type=TriggerType.ReactionRemove,
+                activation_params={
+                    "channel_id": channel.id,
+                    "message_id": msg_id,
+                    "emoji": em,
+                },
+            )
+            session.add(new_trigger)
+            await session.commit()
+
+        embed = self.base_response_embed(new_trigger)
+        embed.add_field(name="Channel", value=channel.mention)
+        embed.add_field(
+            name="Message", value=f"[Jump To Message]({msg.jump_url})"
+        )
+        embed.add_field(
+            name="Emoji", value="All emojis" if emoji is None else str(emoji)
+        )
+
+        await ctx.respond(embed=embed)
+
     @trigger_group.command(name="remove")
     @commands.has_guild_permissions(administrator=True)
     @discord.option("trigger_id", autocomplete=trigger_id_autocomplete)
