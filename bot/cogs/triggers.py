@@ -1,6 +1,7 @@
 import asyncio
+from math import ceil, floor
 import discord
-from discord.ext import commands
+from discord.ext import commands, pages
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
@@ -168,6 +169,46 @@ class Triggers(commands.Cog):
                     f"Couldn't find any triggers with ID `{trigger_id}` in this server!",
                     ephemeral=True,
                 )
+
+    @trigger_group.command(name="list")
+    async def list_triggers(self, ctx: discord.ApplicationContext):
+        """List all the triggers in the current server"""
+
+        if not ctx.guild:
+            return
+
+        async with async_session() as session:
+            query = select(models.Trigger).where(
+                models.Trigger.guild_id == ctx.guild_id
+            )
+            triggers: list[models.Trigger] = list(await session.scalars(query))
+
+        max_per_page = 5
+        total_pages = ceil(len(triggers) / max_per_page)
+        embeds = [
+            discord.Embed(
+                title=f"Triggers in {ctx.guild.name}", color=self.theme
+            ).set_footer(text=f"Page {i + 1} of {total_pages}")
+            for i in range(total_pages)
+        ]
+
+        for i, trigger in enumerate(triggers):
+            idx = floor(i / max_per_page)
+            params_txt = "\n".join(
+                [
+                    f"{key.replace('_', ' ').title()}: `{value}`"
+                    for key, value in trigger.activation_params.items()
+                ]
+            )
+
+            embeds[idx].add_field(
+                name=f"Trigger ID: {trigger.id}",
+                value=f"Type: `{trigger.type.name}`\n{params_txt}",
+                inline=False,
+            )
+
+        paginator = pages.Paginator(embeds)  # type: ignore
+        await paginator.respond(ctx.interaction)
 
 
 def setup(bot: commands.Bot):
