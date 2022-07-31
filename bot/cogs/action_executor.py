@@ -117,7 +117,11 @@ class ActionExecutor(commands.Cog):
                 params: dict = trigger.activation_params  # type: ignore
                 channel_id: int = params["channel_id"]
                 message_id: int = params["message_id"]
-                emoji: str | int | None = params["emoji"]
+                emoji: str | int | None = (
+                    int(params["emoji"])
+                    if params["emoji"].isnumeric()
+                    else params["emoji"]
+                )
 
                 payload_emoji = (
                     payload.emoji.id
@@ -170,7 +174,11 @@ class ActionExecutor(commands.Cog):
                 params: dict = trigger.activation_params  # type: ignore
                 channel_id: int = params["channel_id"]
                 message_id: int = params["message_id"]
-                emoji: str | int | None = params["emoji"]
+                emoji: str | int | None = (
+                    int(params["emoji"])
+                    if params["emoji"].isnumeric()
+                    else params["emoji"]
+                )
 
                 payload_emoji = (
                     payload.emoji.id
