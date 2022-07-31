@@ -250,6 +250,10 @@ class Triggers(commands.Cog):
             )
             triggers: list[models.Trigger] = list(await session.scalars(query))
 
+        if not triggers:
+            await ctx.respond("This server has no triggers!", ephemeral=True)
+            return
+
         max_per_page = 5
         total_pages = ceil(len(triggers) / max_per_page)
         embeds = [

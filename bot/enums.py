@@ -2,8 +2,12 @@ import enum
 
 
 class TriggerType(enum.Enum):
-    # Value of each variant signifies dynamic parameters
+    # Value of each variant signifies dynamic parameters.
+    # Each variant also contains a "trigger_type" key to
+    # avoid confusing SQLAlchemy with the type of the enum.
+
     Message = {
+        "trigger_type": "message",
         "member": None,
         "member_mention": None,
         "channel": None,
@@ -11,19 +15,25 @@ class TriggerType(enum.Enum):
         "message_content": None,
     }
     ReactionAdd = {
+        "trigger_type": "reaction_add",
         "member": None,
         "member_mention": None,
         "channel": None,
         "emoji": None,
     }
     ReactionRemove = {
+        "trigger_type": "reaction_remove",
         "member": None,
         "member_mention": None,
         "channel": None,
         "emoji": None,
     }
-    MemberJoin = {}
-    MemberLeave = {}
+    MemberJoin = {
+        "trigger_type": "member_join",
+    }
+    MemberLeave = {
+        "trigger_type": "member_leave",
+    }
 
 
 class ActionType(enum.Enum):

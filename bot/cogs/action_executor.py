@@ -28,6 +28,15 @@ class ActionExecutor(commands.Cog):
             channel_id
         ) or await self.bot.fetch_channel(channel_id)
 
+    async def get_or_fetch_member(
+        self, guild: discord.Guild, member_id: int
+    ) -> discord.Member:
+        """Gets a member from local cache, but queries Discord API if not found in cache"""
+
+        return guild.get_member(member_id) or await guild.fetch_member(
+            member_id
+        )
+
     async def execute_action(self, action: models.Action, **kwargs):
         params: dict = action.action_params  # type: ignore
 
@@ -124,6 +133,59 @@ class ActionExecutor(commands.Cog):
                     dynamic_params = trigger.type.value.copy()
                     dynamic_params["member"] = payload.member
                     dynamic_params["member_mention"] = payload.member.mention
+                    dynamic_params["channel"] = channel.mention
+                    dynamic_params["emoji"] = payload.emoji
+
+                    action_tasks = [
+                        self.execute_action(action, **dynamic_params)
+                        for action in trigger.actions
+                    ]
+                    await asyncio.gather(*action_tasks)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(
+        self, payload: discord.RawReactionActionEvent
+    ):
+        """Listens for ReactionRemove trigger events"""
+
+        channel = await self.get_or_fetch_channel(payload.channel_id)
+
+        if not (payload.guild_id and isinstance(channel, discord.TextChannel)):
+            return
+
+        payload_member = await self.get_or_fetch_member(
+            channel.guild, payload.user_id
+        )
+
+        async with async_session() as session:
+            query = (
+                select(models.Trigger)
+                .where(models.Trigger.guild_id == payload.guild_id)
+                .where(models.Trigger.type == TriggerType.ReactionRemove)
+                .options(selectinload(models.Trigger.actions))
+            )
+            triggers: Iterable[models.Trigger] = await session.scalars(query)
+
+            for trigger in triggers:
+                params: dict = trigger.activation_params  # type: ignore
+                channel_id: int = params["channel_id"]
+                message_id: int = params["message_id"]
+                emoji: str | int | None = params["emoji"]
+
+                payload_emoji = (
+                    payload.emoji.id
+                    if payload.emoji.is_custom_emoji()
+                    else payload.emoji.name
+                )
+
+                if (
+                    payload.channel_id == channel_id
+                    and payload.message_id == message_id
+                    and (emoji is None or emoji == payload_emoji)
+                ):
+                    dynamic_params = trigger.type.value.copy()
+                    dynamic_params["member"] = payload_member
+                    dynamic_params["member_mention"] = payload_member.mention
                     dynamic_params["channel"] = channel.mention
                     dynamic_params["emoji"] = payload.emoji
 
