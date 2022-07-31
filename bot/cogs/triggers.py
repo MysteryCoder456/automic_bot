@@ -69,7 +69,7 @@ class Triggers(commands.Cog):
         ctx: discord.ApplicationContext,
         channel: discord.TextChannel,
         message_id: str,
-        emoji: discord.PartialEmoji | None,
+        emoji: str | None,
     ):
         """Add a trigger that executes when someone reacts to a message. Looks for all emojis by default."""
 
@@ -101,7 +101,15 @@ class Triggers(commands.Cog):
             return
 
         if emoji:
-            em = emoji.id if emoji.is_custom_emoji() else emoji.name
+            emoji_stripped = emoji.strip()
+            if emoji_stripped.startswith("<") and emoji_stripped.endswith(">"):
+                try:
+                    em = emoji_stripped.strip("<>").split(":")[-1]
+                except ValueError:
+                    await ctx.respond("Unable to read the given custom emoji")
+                    return
+            else:
+                em = emoji
         else:
             em = None
 
@@ -136,7 +144,7 @@ class Triggers(commands.Cog):
         ctx: discord.ApplicationContext,
         channel: discord.TextChannel,
         message_id: str,
-        emoji: discord.PartialEmoji | None,
+        emoji: str | None,
     ):
         """Add a trigger that executes when someone unreacts from a message. Looks for all emojis by default."""
 
@@ -168,7 +176,15 @@ class Triggers(commands.Cog):
             return
 
         if emoji:
-            em = emoji.id if emoji.is_custom_emoji() else emoji.name
+            emoji_stripped = emoji.strip()
+            if emoji_stripped.startswith("<") and emoji_stripped.endswith(">"):
+                try:
+                    em = emoji_stripped.strip("<>").split(":")[-1]
+                except ValueError:
+                    await ctx.respond("Unable to read the given custom emoji")
+                    return
+            else:
+                em = emoji
         else:
             em = None
 
