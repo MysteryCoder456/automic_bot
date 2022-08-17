@@ -1,5 +1,6 @@
+from math import ceil, floor
 import discord
-from discord.ext import commands
+from discord.ext import commands, pages
 from sqlalchemy.future import select
 
 from bot import TESTING_GUILDS, trigger_id_autocomplete
@@ -122,6 +123,50 @@ class Actions(commands.Cog):
             await session.commit()
 
             await ctx.respond(embed=embed)
+
+    @action_group.command(name="list")
+    async def list_actions(self, ctx: discord.ApplicationContext):
+        """List all the actions in the current server"""
+
+        if not ctx.guild:
+            return
+
+        async with async_session() as session:
+            query = select(models.Action).where(
+                models.Action.guild_id == ctx.guild_id
+            )
+            actions: list[models.Action] = list(await session.scalars(query))
+
+        if not actions:
+            await ctx.respond("This server has no actions!", ephemeral=True)
+            return
+
+        max_per_page = 5
+        total_pages = ceil(len(actions) / max_per_page)
+        embeds = [
+            discord.Embed(
+                title=f"Actions in {ctx.guild.name}", color=self.theme
+            ).set_footer(text=f"Page {i + 1} of {total_pages}")
+            for i in range(total_pages)
+        ]
+
+        for i, action in enumerate(actions):
+            idx = floor(i / max_per_page)
+            params_txt = "\n".join(
+                [
+                    f"{key.replace('_', ' ').title()}: `{value}`"
+                    for key, value in action.action_params.items()
+                ]
+            )
+
+            embeds[idx].add_field(
+                name=f"Action ID: {action.id}",
+                value=f"Trigger ID: {action.trigger_id}\nType: `{action.type.name}`\n{params_txt}",
+                inline=False,
+            )
+
+        paginator = pages.Paginator(embeds)  # type: ignore
+        await paginator.respond(ctx.interaction)
 
 
 def setup(bot: commands.Bot):
