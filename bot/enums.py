@@ -30,9 +30,13 @@ class TriggerType(enum.Enum):
     }
     MemberJoin = {
         "trigger_type": "member_join",
+        "member": None,
+        "member_mention": None,
     }
     MemberLeave = {
         "trigger_type": "member_leave",
+        "member": None,
+        "member_mention": None,
     }
 
 

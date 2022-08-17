@@ -212,6 +212,46 @@ class Triggers(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+    @trigger_add_group.command(name="memberjoin")
+    @commands.has_guild_permissions(administrator=True)
+    async def add_member_join_trigger(
+        self,
+        ctx: discord.ApplicationContext,
+    ):
+        """Add a trigger that executes when someone joins the server."""
+
+        async with async_session() as session:
+            new_trigger = models.Trigger(
+                guild_id=ctx.guild_id,
+                type=TriggerType.MemberJoin,
+                activation_params={},
+            )
+            session.add(new_trigger)
+            await session.commit()
+
+        embed = self.base_response_embed(new_trigger)
+        await ctx.respond(embed=embed)
+
+    @trigger_add_group.command(name="memberleave")
+    @commands.has_guild_permissions(administrator=True)
+    async def add_member_leave_trigger(
+        self,
+        ctx: discord.ApplicationContext,
+    ):
+        """Add a trigger that executes when someone leaves the server."""
+
+        async with async_session() as session:
+            new_trigger = models.Trigger(
+                guild_id=ctx.guild_id,
+                type=TriggerType.MemberLeave,
+                activation_params={},
+            )
+            session.add(new_trigger)
+            await session.commit()
+
+        embed = self.base_response_embed(new_trigger)
+        await ctx.respond(embed=embed)
+
     @trigger_group.command(name="remove")
     @commands.has_guild_permissions(administrator=True)
     @discord.option("trigger_id", autocomplete=trigger_id_autocomplete)
