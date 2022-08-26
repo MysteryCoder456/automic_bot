@@ -217,6 +217,7 @@ class Triggers(commands.Cog):
     async def add_member_join_trigger(
         self,
         ctx: discord.ApplicationContext,
+        member: discord.Member | None,
     ):
         """Add a trigger that executes when someone joins the server."""
 
@@ -224,12 +225,16 @@ class Triggers(commands.Cog):
             new_trigger = models.Trigger(
                 guild_id=ctx.guild_id,
                 type=TriggerType.MemberJoin,
-                activation_params={},
+                activation_params={"member_id": member.id if member else None},
             )
             session.add(new_trigger)
             await session.commit()
 
         embed = self.base_response_embed(new_trigger)
+        embed.add_field(
+            name="Member",
+            value="All members" if member is None else member.mention,
+        )
         await ctx.respond(embed=embed)
 
     @trigger_add_group.command(name="memberleave")
@@ -237,6 +242,7 @@ class Triggers(commands.Cog):
     async def add_member_leave_trigger(
         self,
         ctx: discord.ApplicationContext,
+        member: discord.Member | None,
     ):
         """Add a trigger that executes when someone leaves the server."""
 
@@ -244,12 +250,16 @@ class Triggers(commands.Cog):
             new_trigger = models.Trigger(
                 guild_id=ctx.guild_id,
                 type=TriggerType.MemberLeave,
-                activation_params={},
+                activation_params={"member_id": member.id if member else None},
             )
             session.add(new_trigger)
             await session.commit()
 
         embed = self.base_response_embed(new_trigger)
+        embed.add_field(
+            name="Member",
+            value="All members" if member is None else member.mention,
+        )
         await ctx.respond(embed=embed)
 
     @trigger_group.command(name="remove")

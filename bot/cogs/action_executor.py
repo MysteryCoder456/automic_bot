@@ -223,11 +223,15 @@ class ActionExecutor(commands.Cog):
             triggers: Iterable[models.Trigger] = await session.scalars(query)
 
         for trigger in triggers:
-            action_tasks = [
-                self.execute_action(action, **dynamic_params)
-                for action in trigger.actions
-            ]
-            await asyncio.gather(*action_tasks)
+            params: dict = trigger.activation_params  # type: ignore
+            trigger_member_id: int | None = params["member_id"]
+
+            if trigger_member_id is None or trigger_member_id == member.id:
+                action_tasks = [
+                    self.execute_action(action, **dynamic_params)
+                    for action in trigger.actions
+                ]
+                await asyncio.gather(*action_tasks)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -247,11 +251,15 @@ class ActionExecutor(commands.Cog):
             triggers: Iterable[models.Trigger] = await session.scalars(query)
 
         for trigger in triggers:
-            action_tasks = [
-                self.execute_action(action, **dynamic_params)
-                for action in trigger.actions
-            ]
-            await asyncio.gather(*action_tasks)
+            params: dict = trigger.activation_params  # type: ignore
+            trigger_member_id: int | None = params["member_id"]
+
+            if trigger_member_id is None or trigger_member_id == member.id:
+                action_tasks = [
+                    self.execute_action(action, **dynamic_params)
+                    for action in trigger.actions
+                ]
+                await asyncio.gather(*action_tasks)
 
 
 def setup(bot: commands.Bot):
