@@ -268,7 +268,7 @@ class Triggers(commands.Cog):
     async def remove_trigger(
         self, ctx: discord.ApplicationContext, trigger_id: int
     ):
-        """Permanently remove a trigger and all associated actions"""
+        """Permanently remove a trigger and all associated actions."""
 
         async with async_session() as session:
             query = (
